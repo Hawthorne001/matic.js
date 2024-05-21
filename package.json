@@ -47,7 +47,7 @@
   },
   "homepage": "https://github.com/maticnetwork/matic.js#readme",
   "dependencies": {
-    "@ethereumjs/block": "^3.6.2",
+    "@ethereumjs/block": "^3.6.3",
     "ethereumjs-util": "^7.1.4",
     "merkle-patricia-tree": "^4.2.4",
     "node-fetch": "^2.6.1"
