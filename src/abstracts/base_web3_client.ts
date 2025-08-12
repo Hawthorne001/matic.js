@@ -38,7 +38,7 @@ export abstract class BaseWeb3Client {
                 method: 'bor_getRootHash',
                 params: [Number(startBlock), Number(endBlock)],
                 id: new Date().getTime()
-            })
+            });
             if (payload && payload.result) {
                 return String(payload.result);
             }
@@ -49,7 +49,7 @@ export abstract class BaseWeb3Client {
                 method: 'eth_getRootHash',
                 params: [Number(startBlock), Number(endBlock)],
                 id: new Date().getTime()
-            })
+            });
             if (payload && payload.result) {
                 return String(payload.result);
             }
