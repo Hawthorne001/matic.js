@@ -192,7 +192,7 @@ export class ExitUtil {
         });
     }
 
-    private getBlockProof(txBlockNumber: number, rootBlockInfo: { start, end }) {
+    getBlockProof(txBlockNumber: number, rootBlockInfo: { start, end }) {
         return ProofUtil.buildBlockProof(
             this.maticClient_,
             parseInt(rootBlockInfo.start, 10),
