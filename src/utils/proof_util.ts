@@ -162,12 +162,22 @@ export class ProofUtil {
                 throw new Error('Node does not contain the key');
             }
             // result.node.value
+            const getPrfValue = (receipt) => {
+                if (ProofUtil.isTypedReceipt(receipt)) {
+                    return result.node.value;
+                }
+                try {
+                    return rlp.decode(result.node.value.toString());
+                } catch (e) {
+                    return rlp.decode(result.node.value());
+                }
+            };
             const prf = {
                 blockHash: BufferUtil.toBuffer(receipt.blockHash),
                 parentNodes: result.stack.map(s => s.raw()),
                 root: ProofUtil.getRawHeader(block).receiptTrie,
                 path: rlp.encode(receipt.transactionIndex),
-                value: ProofUtil.isTypedReceipt(receipt) ? result.node.value : rlp.decode(result.node.value.toString())
+                value: getPrfValue(receipt)
             };
             return prf;
         });
