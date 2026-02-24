@@ -123,20 +123,54 @@ export class ProofUtil {
         const receiptsTrie = new TRIE();
         let receiptPromise: Promise<ITransactionReceipt[]>;
         if (!receiptsVal) {
-            const receiptPromises = [];
+            // Collect tx hashes without starting requests yet, so that mapPromise
+            // can enforce requestConcurrency as an actual HTTP concurrency limit.
+            // Previously, all getTransactionReceipt calls were started eagerly
+            // inside the forEach before mapPromise was called, making
+            // requestConcurrency a no-op: all requests fired simultaneously
+            // regardless of the setting.
+            const txHashes: string[] = [];
             block.transactions.forEach(tx => {
                 if (tx.transactionHash === stateSyncTxHash) {
                     // ignore if tx hash is bor state-sync tx
                     return;
                 }
-                receiptPromises.push(
-                    web3.getTransactionReceipt(tx.transactionHash)
-                );
+                txHashes.push(tx.transactionHash);
             });
             receiptPromise = mapPromise(
-                receiptPromises,
-                val => {
-                    return val;
+                txHashes,
+                (hash: string) => {
+                    // Retry transient network errors so that a single stale
+                    // keep-alive socket or a brief DNS hiccup does not fail the
+                    // entire proof.  Node.js 19+ enables keep-alive on the
+                    // global HTTPS agent by default; if the server closes an
+                    // idle connection while sequential Ethereum RPC calls are
+                    // running, the next Polygon receipt fetch hits the stale
+                    // socket and receives ECONNRESET.
+                    //
+                    // Each retry waits a full-jitter exponential backoff delay
+                    // in [0, min(2000ms, 250ms * 2^i)] before re-attempting,
+                    // so that a burst of simultaneous failures does not hammer
+                    // the RPC endpoint with synchronised retries.
+                    const MAX_RETRIES = 2;
+                    const attempt = (remaining: number): Promise<ITransactionReceipt> =>
+                        web3.getTransactionReceipt(hash).catch((err: any) => {
+                            const isTransient =
+                                err?.code === 'ECONNRESET'   ||
+                                err?.code === 'ENOTFOUND'    ||
+                                err?.code === 'ECONNREFUSED' ||
+                                err?.code === 'ETIMEDOUT'    ||
+                                err?.errno === 'ECONNRESET'  ||
+                                err?.errno === 'ENOTFOUND';
+                            if (remaining > 0 && isTransient) {
+                                const i = MAX_RETRIES - remaining;
+                                const delayMs = Math.random() * Math.min(250, 50 * Math.pow(2, i));
+                                return new Promise<void>(resolve => setTimeout(resolve, delayMs))
+                                    .then(() => attempt(remaining - 1));
+                            }
+                            throw err;
+                        });
+                    return attempt(MAX_RETRIES);
                 },
                 {
                     concurrency: requestConcurrency,

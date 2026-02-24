@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.spec.js",
   "scripts": {
+    "test": "BUILD_ENV=node jest",
     "link:lib": "npm link @maticnetwork/maticjs",
     "debug": "node debug.js",
     "link:lib:debug": "npm run link:lib && npm run debug"
