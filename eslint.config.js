@@ -37,7 +37,9 @@ export default defineConfig([
       // legacy jest/karma test suite — to be replaced with vitest in a separate PR
       'packages/maticjs/test/**',
       // standalone consumer-facing reference scripts, not part of the workspace
-      'examples/**'
+      'examples/**',
+      // manual developer scratch scripts — not automated, not part of the workspace
+      'manual/**'
     ]
   },
   {

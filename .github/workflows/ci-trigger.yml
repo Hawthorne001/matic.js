@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: CI - lint / typecheck / test
+    runs-on: ubuntu-latest
+    # Skip automated version-bump PRs — they contain only changelog and
+    # version entries, never code changes.
+    if: "!startsWith(github.head_ref, 'changeset-release/')"
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm run lint
+
+      - run: pnpm run --if-present typecheck
+
+      - run: pnpm run --if-present test
+
+  build:
+    # Verify the library webpack build succeeds across the Node versions
+    # consumers are likely to be running. Tooling (ESLint, vitest) requires
+    # Node 18+, so 16.x is excluded — the library's engines field still
+    # declares >=8.0.0 for runtime compatibility.
+    name: build (${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    if: "!startsWith(github.head_ref, 'changeset-release/')"
+    strategy:
+      matrix:
+        node-version: [18.x, 20.x, 22.x, 24.x]
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm --filter @maticnetwork/maticjs run build

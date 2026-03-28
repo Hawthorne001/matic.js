@@ -1,0 +1,186 @@
+name: npm release
+
+on:
+  workflow_call:
+    secrets:
+      CHANGESET_RELEASE_BOT_APP_ID:
+        required: true
+      CHANGESET_RELEASE_BOT_APP_PRIVATE_KEY:
+        required: true
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write # required for npm OIDC trusted publishing
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/create-github-app-token@d72941d797fd3113feb6b93fd0dec494b13a2547 # v1
+        id: app-token
+        with:
+          app-id: ${{ secrets.CHANGESET_RELEASE_BOT_APP_ID }}
+          private-key: ${{ secrets.CHANGESET_RELEASE_BOT_APP_PRIVATE_KEY }}
+
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 1
+          token: ${{ steps.app-token.outputs.token }}
+
+      - uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          registry-url: 'https://registry.npmjs.org'
+          # No node-auth-token — npm auth handled by OIDC
+
+      # The release PR replaces workspace:* with real semver ranges for all
+      # intra-monorepo deps (e.g. ^2.0.0). Those versions don't exist on npm
+      # yet — they're what we're about to publish. --config.link-workspace-packages=true
+      # overrides .npmrc so pnpm resolves those ranges against local workspace
+      # versions instead of the registry, making the install succeed regardless
+      # of which packages are being co-released.
+      - run: pnpm install --no-frozen-lockfile --config.link-workspace-packages=true
+
+      - uses: changesets/action@6a0a831ff30acef54f2c6aa1cbbc1096b066edaf # v1.7.0
+        id: changesets
+        with:
+          # No publish: here — publish is handled in the explicit steps below so
+          # that version tags are only pushed after the lockfile commit. If
+          # publish: were used, changesets/action would push tags during its own
+          # run, before the lockfile is updated, creating a race window where
+          # Docker build triggers could fire against a stale lockfile commit.
+          title: 'changesets: Release / Deploy'
+          commit: 'release: version packages'
+          # github-api mode signs commits with GitHub's GPG key, satisfying the
+          # repository's signed-commits requirement. git-cli (the default) produces
+          # unsigned commits.
+          commitMode: github-api
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          # No NPM_TOKEN — using OIDC trusted publishing
+          # changesets/action v1.7.0 only writes auth token to .npmrc when NPM_TOKEN is set;
+          # leaving it unset allows npm to use OIDC automatically
+
+      # hasChangesets == 'false' means the release PR was just merged and all
+      # changeset files have been consumed. Time to publish.
+      # --no-git-tag: tags are created below, only after the lockfile commit
+      # exists. Tags pushed here would point at the stale lockfile commit and
+      # trigger Docker builds before the lockfile is correct.
+      # Called directly (not via ci:publish) so --no-git-tag reaches changeset
+      # publish rather than pnpm itself.
+      - name: Publish packages to npm
+        id: publish
+        if: steps.changesets.outputs.hasChangesets == 'false'
+        run: pnpm exec changeset publish --no-git-tag
+
+      # All published packages now exist on npm. Regenerate only the lockfile
+      # (--lockfile-only skips node_modules) so every semver range resolves
+      # cleanly from the registry. --no-frozen-lockfile is intentionally scoped:
+      # pnpm only re-resolves entries whose specifier changed (the workspace
+      # packages that were just bumped); all other locked versions are preserved.
+      # link-workspace-packages=false is already set in .npmrc, so the lockfile
+      # records npm registry resolutions without an explicit override here.
+      # All published versions now exist on npm, so this resolves cleanly.
+      # The resulting lockfile is what Docker builds will use at the release tag.
+      - name: Regenerate lockfile post-publish
+        if: steps.publish.outcome == 'success'
+        run: pnpm install --no-frozen-lockfile --lockfile-only
+
+      # Commit the updated lockfile via the GitHub API, which signs the commit
+      # with GitHub's GPG key — required by the signed-commits branch protection
+      # rule. This must happen before tags are pushed so that Docker builds
+      # triggered by the tags use a lockfile that resolves from npm.
+      - name: Commit updated lockfile
+        if: steps.publish.outcome == 'success'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ steps.app-token.outputs.token }}
+        run: |
+          if git diff --quiet -- pnpm-lock.yaml; then
+            echo "Lockfile unchanged — skipping commit"
+            exit 0
+          fi
+
+          PARENT_SHA=$(git rev-parse HEAD)
+          TREE_SHA=$(git rev-parse HEAD^{tree})
+          echo "Parent commit: $PARENT_SHA (tree: $TREE_SHA)"
+
+          BLOB_SHA=$(jq -n --arg content "$(base64 -w 0 pnpm-lock.yaml)" \
+            '{encoding: "base64", content: $content}' | \
+            gh api repos/$GITHUB_REPOSITORY/git/blobs --input - --jq '.sha')
+          echo "Lockfile blob: $BLOB_SHA"
+
+          NEW_TREE_SHA=$(jq -n --arg base_tree "$TREE_SHA" --arg blob_sha "$BLOB_SHA" \
+            '{base_tree: $base_tree, tree: [{path: "pnpm-lock.yaml", mode: "100644", type: "blob", sha: $blob_sha}]}' | \
+            gh api repos/$GITHUB_REPOSITORY/git/trees --input - --jq '.sha')
+          echo "New tree: $NEW_TREE_SHA"
+
+          COMMIT_SHA=$(jq -n \
+            --arg message "chore: update lockfile after publish" \
+            --arg tree "$NEW_TREE_SHA" \
+            --arg parent "$PARENT_SHA" \
+            '{message: $message, tree: $tree, parents: [$parent]}' | \
+            gh api repos/$GITHUB_REPOSITORY/git/commits --input - --jq '.sha')
+          echo "Lockfile commit: $COMMIT_SHA"
+
+          gh api repos/$GITHUB_REPOSITORY/git/refs/heads/master \
+            --method PATCH \
+            --field sha="$COMMIT_SHA"
+          echo "main advanced to $COMMIT_SHA"
+
+      # Pull the lockfile commit so local HEAD matches remote main, then create
+      # and push version tags. Tags now point at the lockfile commit, so Docker
+      # build triggers fire against a clean, fully-resolved lockfile.
+      - name: Tag published versions
+        if: steps.publish.outcome == 'success'
+        run: |
+          git fetch origin master --tags
+          git merge --ff-only origin/master
+          echo "Local HEAD now at $(git rev-parse HEAD)"
+          pnpm exec changeset tag
+          git push --tags
+          echo "Tags pushed"
+
+      - name: Add description to Release / Deploy PR
+        if: steps.changesets.outputs.pullRequestNumber != ''
+        env:
+          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          PR_NUMBER: ${{ steps.changesets.outputs.pullRequestNumber }}
+        run: |
+          # Fetch the changelog content that changesets just wrote to the PR body
+          CHANGELOG=$(gh pr view "$PR_NUMBER" --json body --jq '.body')
+
+          # Write preamble to a temp file then append the changelog
+          cat > /tmp/pr-body.md << 'PREAMBLE'
+          ## What is this PR?
+
+          This is the automated **Release / Deploy** PR. It is created and updated
+          automatically by the release pipeline as changesets accumulate on `main`.
+          It contains version bumps, updated changelogs, and dependency updates for
+          every changed package.
+
+          ## What happens when you merge?
+
+          Merging triggers the full release and deployment pipeline:
+
+          1. **npm publish** — changed packages are published to the npm registry
+          2. **Git tags** — version tags are pushed for each package (e.g. `gas-station@2.1.0`)
+          3. **Docker builds** — each deployable service gets a new image tagged with its
+             version and pushed to GCP Artifact Registry
+          4. **Kargo promotion** — new images are promoted through dev → staging → production
+
+          > [!WARNING]
+          > Only merge when the team is ready for a production release. This PR updates
+          > itself automatically as new changesets land on `main` — there is no need to
+          > close and reopen it.
+
+          ---
+
+          PREAMBLE
+
+          printf '%s\n' "$CHANGELOG" >> /tmp/pr-body.md
+          gh pr edit "$PR_NUMBER" --body-file /tmp/pr-body.md

@@ -1,0 +1,53 @@
+name: Release
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'npm dist-tag for snapshot (e.g. canary, chore-monorepo)'
+        required: false
+        default: 'snapshot'
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write # required for npm OIDC trusted publishing
+
+jobs:
+  release:
+    if: github.event_name == 'push'
+    uses: ./.github/workflows/npm-release.yml
+    secrets:
+      CHANGESET_RELEASE_BOT_APP_ID: ${{ secrets.CHANGESET_RELEASE_BOT_APP_ID }}
+      CHANGESET_RELEASE_BOT_APP_PRIVATE_KEY: ${{ secrets.CHANGESET_RELEASE_BOT_APP_PRIVATE_KEY }}
+
+  snapshot:
+    if: github.event_name == 'workflow_dispatch'
+    name: Publish snapshot
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          registry-url: 'https://registry.npmjs.org'
+          # No node-auth-token — npm auth handled by OIDC trusted publishing
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Build packages
+        run: pnpm --filter @maticnetwork/maticjs run build
+
+      - name: Version snapshot
+        # Temporarily bumps the version to e.g. 3.9.7-chore-monorepo-20260329085530.0
+        # on the runner — these changes are never committed.
+        run: pnpm exec changeset version --snapshot ${{ inputs.tag }}
+
+      - name: Publish snapshot
+        run: pnpm exec changeset publish --snapshot --tag ${{ inputs.tag }} --no-git-tag
