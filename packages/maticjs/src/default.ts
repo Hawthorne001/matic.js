@@ -1,8 +1,8 @@
-import { POSClient } from "./pos";
-import { use, utils } from "./utils";
+import { POSClient } from './pos';
+import { use, utils } from './utils';
 
 export const defaultExport = {
-    utils: utils,
-    use,
-    POSClient,
+  utils: utils,
+  use,
+  POSClient
 };

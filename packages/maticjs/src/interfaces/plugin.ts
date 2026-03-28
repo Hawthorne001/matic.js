@@ -1,5 +1,5 @@
-import { defaultExport } from "../default";
+import type { defaultExport } from '../default';
 
 export interface IPlugin {
-    setup(matic: typeof defaultExport, ...payload);
+  setup(matic: typeof defaultExport, ...payload);
 }

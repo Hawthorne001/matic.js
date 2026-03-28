@@ -4,7 +4,6 @@
 //     private txHashPromise: Promise<string>;
 //     private receiptPromise: Promise<ITransactionReceipt>;
 
-
 //     constructor(private result_: ITransactionWriteResult) {
 //         if (!result_.getTransactionHash) {
 //             this.txHashPromise = new Promise((res, rej) => {

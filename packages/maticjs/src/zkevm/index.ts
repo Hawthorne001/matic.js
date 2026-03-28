@@ -1,94 +1,82 @@
-import { ERC20 } from "./erc20";
-import { ZkEvmBridge } from "./zkevm_bridge";
-import { BridgeUtil } from "./bridge_util";
-import { ZkEvmBridgeClient } from "../utils";
-import { IZkEvmClientConfig, IZkEvmContracts } from "../interfaces";
-import { config as urlConfig } from "../config";
-import { service, NetworkService } from "../services";
-import { ZkEVMWrapper } from "./zkevm_wrapper";
+import type { IZkEvmClientConfig, IZkEvmContracts } from '../interfaces';
 
-export * from "./zkevm_bridge";
-export * from "./bridge_util";
-export * from "./zkevm_wrapper";
+import { config as urlConfig } from '../config';
+import { service, NetworkService } from '../services';
+import { ZkEvmBridgeClient } from '../utils';
+import { BridgeUtil } from './bridge_util';
+import { ERC20 } from './erc20';
+import { ZkEvmBridge } from './zkevm_bridge';
+import { ZkEVMWrapper } from './zkevm_wrapper';
+
+export * from './zkevm_bridge';
+export * from './bridge_util';
+export * from './zkevm_wrapper';
 
 export class ZkEvmClient extends ZkEvmBridgeClient {
+  zkEVMWrapper: ZkEVMWrapper;
 
-    zkEVMWrapper: ZkEVMWrapper;
+  init(config: IZkEvmClientConfig) {
+    const client = this.client;
 
-    init(config: IZkEvmClientConfig) {
-        const client = this.client;
+    return client.init(config).then(() => {
+      const mainZkEvmContracts = client.mainZkEvmContracts;
+      const zkEvmContracts = client.zkEvmContracts;
+      const mergedConfig = Object.assign(
+        {
+          parentBridge: mainZkEvmContracts.PolygonZkEVMBridgeProxy,
+          childBridge: zkEvmContracts.PolygonZkEVMBridge,
+          zkEVMWrapper: mainZkEvmContracts.ZkEVMWrapper
+        } as IZkEvmClientConfig,
+        config
+      );
+      client.config = mergedConfig;
 
-        return client.init(config).then(_ => {
-            const mainZkEvmContracts = client.mainZkEvmContracts;
-            const zkEvmContracts = client.zkEvmContracts;
-            client.config = config = Object.assign(
-                {
-                    parentBridge: mainZkEvmContracts.PolygonZkEVMBridgeProxy,
-                    childBridge: zkEvmContracts.PolygonZkEVMBridge,
-                    zkEVMWrapper: mainZkEvmContracts.ZkEVMWrapper
-                } as IZkEvmClientConfig,
-                config
-            );
+      this.rootChainBridge = new ZkEvmBridge(this.client, mergedConfig.parentBridge, true);
 
-            this.rootChainBridge = new ZkEvmBridge(
-                this.client,
-                config.parentBridge,
-                true
-            );
+      this.childChainBridge = new ZkEvmBridge(this.client, mergedConfig.childBridge, false);
 
-            this.childChainBridge = new ZkEvmBridge(
-                this.client,
-                config.childBridge,
-                false
-            );
+      this.zkEVMWrapper = new ZkEVMWrapper(this.client, mergedConfig.zkEVMWrapper);
 
-            this.zkEVMWrapper = new ZkEVMWrapper(
-                this.client,
-                config.zkEVMWrapper
-            );
+      this.bridgeUtil = new BridgeUtil(this.client);
 
-            this.bridgeUtil = new BridgeUtil(
-                this.client
-            );
+      if (!service.zkEvmNetwork) {
+        if (urlConfig.zkEvmBridgeService[urlConfig.zkEvmBridgeService.length - 1] !== '/') {
+          urlConfig.zkEvmBridgeService += '/';
+        }
+        urlConfig.zkEvmBridgeService += 'api/zkevm/';
+        service.zkEvmNetwork = new NetworkService(urlConfig.zkEvmBridgeService);
+      }
 
-            if (!service.zkEvmNetwork) {
-                if (urlConfig.zkEvmBridgeService[urlConfig.zkEvmBridgeService.length - 1] !== '/') {
-                    urlConfig.zkEvmBridgeService += '/';
-                }
-                urlConfig.zkEvmBridgeService += 'api/zkevm/';
-                service.zkEvmNetwork = new NetworkService(urlConfig.zkEvmBridgeService);
-            }
+      return this;
+    });
+  }
 
-            return this;
-        });
-    }
+  /**
+   * creates instance of ERC20 token
+   *
+   * @param {string} tokenAddress
+   * @param {boolean} isParent
+   *
+   * @param bridgeAdapterAddress Needed if a custom erc20 token is being bridged
+   * @returns
+   * @memberof ERC20
+   */
+  erc20(tokenAddress: string, isParent?: boolean, bridgeAdapterAddress?: string) {
+    return new ERC20(
+      tokenAddress,
+      isParent,
+      bridgeAdapterAddress,
+      this.client,
+      this.getContracts_.bind(this)
+    );
+  }
 
-    /**
-     * creates instance of ERC20 token
-     *
-     * @param {string} tokenAddress
-     * @param {boolean} isParent
-     *
-     * @param bridgeAdapterAddress Needed if a custom erc20 token is being bridged
-     * @returns
-     * @memberof ERC20
-     */
-    erc20(tokenAddress: string, isParent?: boolean, bridgeAdapterAddress?: string) {
-        return new ERC20(
-            tokenAddress,
-            isParent,
-            bridgeAdapterAddress,
-            this.client,
-            this.getContracts_.bind(this)
-        );
-    }
-
-    private getContracts_() {
-        return {
-            parentBridge: this.rootChainBridge,
-            childBridge: this.childChainBridge,
-            bridgeUtil: this.bridgeUtil,
-            zkEVMWrapper: this.zkEVMWrapper
-        } as IZkEvmContracts;
-    }
+  private getContracts_() {
+    return {
+      parentBridge: this.rootChainBridge,
+      childBridge: this.childChainBridge,
+      bridgeUtil: this.bridgeUtil,
+      zkEVMWrapper: this.zkEVMWrapper
+    } as IZkEvmContracts;
+  }
 }

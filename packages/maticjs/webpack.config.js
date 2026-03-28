@@ -1,16 +1,18 @@
 /* global __dirname, require, module */
-const path = require('path')
-const webpack = require('webpack')
-const env = require('yargs').argv.env // use --env with webpack 2
+const path = require('path');
+
+const webpack = require('webpack');
+const env = require('yargs').argv.env; // use --env with webpack 2
+const copyPlugin = require('copy-webpack-plugin');
+
 const banner = require('./license.js');
-const copyPlugin = require('copy-webpack-plugin')
 
-const libraryName = 'matic'
+const libraryName = 'matic';
 
-let mode = 'development'
+let mode = 'development';
 
 if (env === 'build') {
-  mode = 'production'
+  mode = 'production';
 }
 
 const clientConfig = {
@@ -24,16 +26,16 @@ const clientConfig = {
     library: libraryName,
     libraryTarget: 'umd',
     // libraryExport: 'default',
-    umdNamedDefine: true,
+    umdNamedDefine: true
   },
   module: {
     rules: [
       {
         test: /\.ts$/,
         use: 'ts-loader',
-        exclude: /node_modules/,
-      },
-    ],
+        exclude: /node_modules/
+      }
+    ]
   },
   externals: {
     web3: 'web3',
@@ -44,11 +46,11 @@ const clientConfig = {
     '@ethereumjs/common': '@ethereumjs/common',
     '@ethereumjs/trie': '@ethereumjs/trie',
     'node-fetch': 'node-fetch',
-    'rlp': 'rlp',
+    rlp: 'rlp',
     'ethereum-cryptography': 'ethereum-cryptography',
-    'buffer': 'buffer',
-    'assert': 'assert',
-    "stream": "stream"
+    buffer: 'buffer',
+    assert: 'assert',
+    stream: 'stream'
   },
   resolve: {
     modules: [path.resolve(__dirname, 'src'), 'node_modules'],
@@ -56,11 +58,11 @@ const clientConfig = {
   },
   plugins: [
     new copyPlugin({
-      patterns: [{ from: path.resolve('build_helper', 'npm.export.js'), to: '' }],
+      patterns: [{ from: path.resolve('build_helper', 'npm.export.js'), to: '' }]
     }),
     new webpack.BannerPlugin(banner)
-  ],
-}
+  ]
+};
 
 const serverConfig = {
   ...clientConfig,
@@ -69,23 +71,23 @@ const serverConfig = {
     path: `${__dirname}/dist`,
     filename: `${libraryName}.node${mode === 'production' ? '.min' : ''}.js`,
     // globalObject: 'this',
-    libraryTarget: 'commonjs2',
+    libraryTarget: 'commonjs2'
   },
   plugins: [
     new webpack.DefinePlugin({
-      'process.env.BUILD_ENV': JSON.stringify("node")
-    }),
-  ],
-}
+      'process.env.BUILD_ENV': JSON.stringify('node')
+    })
+  ]
+};
 
 const standaloneConfig = {
   ...clientConfig,
   output: {
     ...clientConfig.output,
     library: libraryName,
-    filename: `${libraryName}.js`,
+    filename: `${libraryName}.js`
   },
-  externals: {},
-}
+  externals: {}
+};
 
-module.exports = [clientConfig, serverConfig, standaloneConfig]
+module.exports = [clientConfig, serverConfig, standaloneConfig];

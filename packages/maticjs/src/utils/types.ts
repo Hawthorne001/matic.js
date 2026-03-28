@@ -14,14 +14,14 @@ export type PrefixedHexString = string;
  * A type that represents an object that has a `toArray()` method.
  */
 export interface ITransformableToArray {
-    toArray(): Uint8Array;
-    toBuffer?(): Buffer;
+  toArray(): Uint8Array;
+  toBuffer?(): Buffer;
 }
 
 /*
-* A type that represents an object that has a `toBuffer()` method.
-*/
+ * A type that represents an object that has a `toBuffer()` method.
+ */
 export interface ITransformableToBuffer {
-    toBuffer(): Buffer;
-    toArray?(): Uint8Array;
+  toBuffer(): Buffer;
+  toArray?(): Uint8Array;
 }

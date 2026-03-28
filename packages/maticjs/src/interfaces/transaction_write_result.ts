@@ -1,7 +1,6 @@
-import { ITransactionReceipt } from "./tx_receipt";
+import type { ITransactionReceipt } from './tx_receipt';
 
 export interface ITransactionWriteResult {
-
-    getTransactionHash: () => Promise<string>;
-    getReceipt: () => Promise<ITransactionReceipt>;
+  getTransactionHash: () => Promise<string>;
+  getReceipt: () => Promise<ITransactionReceipt>;
 }

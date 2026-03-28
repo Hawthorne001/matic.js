@@ -1,11 +1,11 @@
-import { BaseContractMethod } from "../abstracts";
-import { Logger } from "../utils";
+import type { BaseContractMethod } from '../abstracts';
+import type { Logger } from '../utils';
 
 export abstract class BaseContract {
+  constructor(
+    public address: string,
+    public logger: Logger
+  ) {}
 
-    constructor(public address: string, public logger:Logger) {
-
-    }
-
-    abstract method(methodName: string, ...args): BaseContractMethod;
+  abstract method(methodName: string, ...args): BaseContractMethod;
 }

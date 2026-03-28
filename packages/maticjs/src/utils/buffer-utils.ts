@@ -1,128 +1,124 @@
-import {
-    ITransformableToArray,
-    PrefixedHexString,
-    ITransformableToBuffer,
-    BN
-} from "./types";
+import type { ITransformableToArray, PrefixedHexString, ITransformableToBuffer } from './types';
+
+import { BN } from './types';
 
 export type ToBufferInputTypes =
-    | PrefixedHexString
-    | number
-    | BN
-    | Buffer
-    | Uint8Array
-    | number[]
-    | ITransformableToArray
-    | ITransformableToBuffer
-    | null
-    | undefined;
+  | PrefixedHexString
+  | number
+  | BN
+  | Buffer
+  | Uint8Array
+  | number[]
+  | ITransformableToArray
+  | ITransformableToBuffer
+  | null
+  | undefined;
 
 export class BufferUtil {
-    static intToHex = function (i: number) {
-        if (!Number.isSafeInteger(i) || i < 0) {
-            throw new Error(`Received an invalid integer type: ${i}`);
-        }
-        return `0x${i.toString(16)}`;
-    };
+  static intToHex = function (i: number) {
+    if (!Number.isSafeInteger(i) || i < 0) {
+      throw new Error(`Received an invalid integer type: ${i}`);
+    }
+    return `0x${i.toString(16)}`;
+  };
 
-    static padToEven(value: string): string {
-        let a = value;
+  static padToEven(value: string): string {
+    let a = value;
 
-        if (typeof a !== 'string') {
-            throw new Error(`[padToEven] value must be type 'string', received ${typeof a}`);
-        }
-
-        if (a.length % 2) a = `0${a}`;
-
-        return a;
+    if (typeof a !== 'string') {
+      throw new Error(`[padToEven] value must be type 'string', received ${typeof a}`);
     }
 
-    static isHexPrefixed(str: string): boolean {
-        if (typeof str !== 'string') {
-            throw new Error(`[isHexPrefixed] input must be type 'string', received type ${typeof str}`);
-        }
+    if (a.length % 2) a = `0${a}`;
 
-        return str[0] === '0' && str[1] === 'x';
+    return a;
+  }
+
+  static isHexPrefixed(str: string): boolean {
+    if (typeof str !== 'string') {
+      throw new Error(`[isHexPrefixed] input must be type 'string', received type ${typeof str}`);
     }
 
-    static stripHexPrefix = (str: string): string => {
-        if (typeof str !== 'string') {
-            throw new Error(`[stripHexPrefix] input must be type 'string', received ${typeof str}`);
-        }
+    return str[0] === '0' && str[1] === 'x';
+  }
 
-        return BufferUtil.isHexPrefixed(str) ? str.slice(2) : str;
+  static stripHexPrefix = (str: string): string => {
+    if (typeof str !== 'string') {
+      throw new Error(`[stripHexPrefix] input must be type 'string', received ${typeof str}`);
     }
 
-    /**
-     * Converts an `Number` to a `Buffer`
-     * @param {Number} i
-     * @return {Buffer}
-     */
-    static intToBuffer = function (i: number) {
-        const hex = BufferUtil.intToHex(i);
-        return Buffer.from(BufferUtil.padToEven(hex.slice(2)), 'hex');
-    };
+    return BufferUtil.isHexPrefixed(str) ? str.slice(2) : str;
+  };
 
-    static isHexString(value: string, length?: number): boolean {
-        if (typeof value !== 'string' || !value.match(/^0x[0-9A-Fa-f]*$/)) return false;
+  /**
+   * Converts an `Number` to a `Buffer`
+   * @param {Number} i
+   * @return {Buffer}
+   */
+  static intToBuffer = function (i: number) {
+    const hex = BufferUtil.intToHex(i);
+    return Buffer.from(BufferUtil.padToEven(hex.slice(2)), 'hex');
+  };
 
-        if (length && value.length !== 2 + 2 * length) return false;
+  static isHexString(value: string, length?: number): boolean {
+    if (typeof value !== 'string' || !value.match(/^0x[0-9A-Fa-f]*$/)) return false;
 
-        return true;
+    if (length && value.length !== 2 + 2 * length) return false;
+
+    return true;
+  }
+
+  static toBuffer = function (v: ToBufferInputTypes): Buffer {
+    if (v === null || v === undefined) {
+      return Buffer.allocUnsafe(0);
     }
 
+    if (Buffer.isBuffer(v)) {
+      return Buffer.from(v);
+    }
 
-    static toBuffer = function (v: ToBufferInputTypes): Buffer {
-        if (v === null || v === undefined) {
-            return Buffer.allocUnsafe(0);
-        }
+    if (Array.isArray(v) || v instanceof Uint8Array) {
+      return Buffer.from(v as Uint8Array);
+    }
 
-        if (Buffer.isBuffer(v)) {
-            return Buffer.from(v);
-        }
+    if (typeof v === 'string') {
+      if (!BufferUtil.isHexString(v)) {
+        throw new Error(
+          `Cannot convert string to buffer. toBuffer only supports 0x-prefixed hex strings and this string was given: ${v}`
+        );
+      }
+      return Buffer.from(BufferUtil.padToEven(BufferUtil.stripHexPrefix(v)), 'hex');
+    }
 
-        if (Array.isArray(v) || v instanceof Uint8Array) {
-            return Buffer.from(v as Uint8Array);
-        }
+    if (typeof v === 'number') {
+      return BufferUtil.intToBuffer(v);
+    }
 
-        if (typeof v === 'string') {
-            if (!BufferUtil.isHexString(v)) {
-                throw new Error(
-                    `Cannot convert string to buffer. toBuffer only supports 0x-prefixed hex strings and this string was given: ${v}`
-                );
-            }
-            return Buffer.from(BufferUtil.padToEven(BufferUtil.stripHexPrefix(v)), 'hex');
-        }
+    if (BN.isBN(v)) {
+      if (v.isNeg()) {
+        throw new Error(`Cannot convert negative BN to buffer. Given: ${v}`);
+      }
+      return v.toArrayLike(Buffer);
+    }
 
-        if (typeof v === 'number') {
-            return BufferUtil.intToBuffer(v);
-        }
+    if (v.toArray) {
+      // converts a BN to a Buffer
+      return Buffer.from(v.toArray());
+    }
 
-        if (BN.isBN(v)) {
-            if (v.isNeg()) {
-                throw new Error(`Cannot convert negative BN to buffer. Given: ${v}`);
-            }
-            return v.toArrayLike(Buffer);
-        }
+    if (v.toBuffer) {
+      return Buffer.from(v.toBuffer());
+    }
 
-        if (v.toArray) {
-            // converts a BN to a Buffer
-            return Buffer.from(v.toArray());
-        }
+    throw new Error('invalid type');
+  };
 
-        if (v.toBuffer) {
-            return Buffer.from(v.toBuffer());
-        }
-
-        throw new Error('invalid type');
-    };
-
-    /**
-     * Converts a `Buffer` into a `0x`-prefixed hex `String`.
-     * @param buf `Buffer` object to convert
-     */
-    static bufferToHex = function (buf: Buffer): string {
-        buf = BufferUtil.toBuffer(buf);
-        return '0x' + buf.toString('hex');
-    };
+  /**
+   * Converts a `Buffer` into a `0x`-prefixed hex `String`.
+   * @param buf `Buffer` object to convert
+   */
+  static bufferToHex = function (buf: Buffer): string {
+    const normalized = BufferUtil.toBuffer(buf);
+    return '0x' + normalized.toString('hex');
+  };
 }

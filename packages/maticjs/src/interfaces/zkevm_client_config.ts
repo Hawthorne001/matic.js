@@ -1,7 +1,7 @@
-import { IBaseClientConfig } from "./base_client_config";
+import type { IBaseClientConfig } from './base_client_config';
 
 export interface IZkEvmClientConfig extends IBaseClientConfig {
-    parentBridge?: string;
-    childBridge?: string;
-    zkEVMWrapper?: string;
+  parentBridge?: string;
+  childBridge?: string;
+  zkEVMWrapper?: string;
 }

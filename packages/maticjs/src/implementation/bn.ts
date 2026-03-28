@@ -1,56 +1,52 @@
-import { throwNotImplemented } from "..";
-import { BaseBigNumber } from "../abstracts";
+import { throwNotImplemented } from '..';
+import { BaseBigNumber } from '../abstracts';
 
 export class EmptyBigNumber extends BaseBigNumber {
+  constructor(_value: unknown) {
+    super();
+  }
 
-    constructor(value) {
-        super();
-    }
+  toString(_base?: number) {
+    return throwNotImplemented<string>();
+  }
 
-    toString(base?) {
-        return throwNotImplemented<string>();
-    }
+  toNumber() {
+    return throwNotImplemented<number>();
+  }
 
-    toNumber() {
-        return throwNotImplemented<number>();
-    }
+  add(_value: BaseBigNumber) {
+    return throwNotImplemented<BaseBigNumber>();
+  }
 
-    add(value: BaseBigNumber) {
-        return throwNotImplemented<BaseBigNumber>();
-    }
+  sub(_value: BaseBigNumber) {
+    return throwNotImplemented<BaseBigNumber>();
+  }
 
-    sub(value: BaseBigNumber) {
-        return throwNotImplemented<BaseBigNumber>();
-    }
+  mul(_value: BaseBigNumber) {
+    return throwNotImplemented<BaseBigNumber>();
+  }
 
-    mul(value: BaseBigNumber) {
-        return throwNotImplemented<BaseBigNumber>();
-    }
+  div(_value: BaseBigNumber) {
+    return throwNotImplemented<BaseBigNumber>();
+  }
 
-    div(value: BaseBigNumber) {
-        return throwNotImplemented<BaseBigNumber>();
-    }
+  lte(_value: BaseBigNumber) {
+    return throwNotImplemented<boolean>();
+  }
 
-    lte(value: BaseBigNumber) {
-        return throwNotImplemented<boolean>();
-    }
+  lt(_value: BaseBigNumber) {
+    return throwNotImplemented<boolean>();
+  }
 
-    lt(value: BaseBigNumber) {
-        return throwNotImplemented<boolean>();
+  gte(_value: BaseBigNumber) {
+    return throwNotImplemented<boolean>();
+  }
 
-    }
+  gt(_value: BaseBigNumber) {
+    return throwNotImplemented<boolean>();
+  }
 
-    gte(value: BaseBigNumber) {
-        return throwNotImplemented<boolean>();
-
-    }
-
-    gt(value: BaseBigNumber) {
-        return throwNotImplemented<boolean>();
-
-    }
-
-    eq(value: BaseBigNumber) {
-        return throwNotImplemented<boolean>();
-    }
+  eq(_value: BaseBigNumber) {
+    return throwNotImplemented<boolean>();
+  }
 }

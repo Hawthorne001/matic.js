@@ -1,3 +1,1 @@
-export const doNothing = () => {
-
-};
+export const doNothing = () => {};

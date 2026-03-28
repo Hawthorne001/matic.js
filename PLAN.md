@@ -8,13 +8,13 @@ and ethers provider plugins from their standalone repos.
 
 ## Overview
 
-| Phase | PR | Description |
-|-------|----|-------------|
-| 1a | PR 1 | Monorepo structure — move core to `packages/maticjs/`, add workspace tooling |
-| 1b | PR 2 | Replace tslint with ESLint; update CI workflows |
-| 2  | PR 3 | Add `@maticnetwork/maticjs-viem` in `packages/viem/` |
-| 3a | PR 4 | Migrate `maticjs-web3` into `packages/web3/`, archive external repo |
-| 3b | PR 5 | Migrate `maticjs-ethers` into `packages/ethers/`, archive external repo |
+| Phase | PR   | Description                                                                  |
+| ----- | ---- | ---------------------------------------------------------------------------- |
+| 1a    | PR 1 | Monorepo structure — move core to `packages/maticjs/`, add workspace tooling |
+| 1b    | PR 2 | Replace tslint with ESLint; update CI workflows                              |
+| 2     | PR 3 | Add `@maticnetwork/maticjs-viem` in `packages/viem/`                         |
+| 3a    | PR 4 | Migrate `maticjs-web3` into `packages/web3/`, archive external repo          |
+| 3b    | PR 5 | Migrate `maticjs-ethers` into `packages/ethers/`, archive external repo      |
 
 Out of scope: `maticjs-plasma` and `maticjs-staking` are domain bridge clients
 (they extend `BridgeClient`, not `IPlugin`) and remain as independent repos.
@@ -57,6 +57,7 @@ Structural reorganisation only. No source code changes. `pnpm publish` of
   - Note: `packages/maticjs` does NOT use `erasableSyntaxOnly` (see below)
 
 - [ ] `.changeset/config.json`
+
   ```json
   {
     "changelog": "@changesets/cli/changelog",
@@ -77,15 +78,15 @@ Structural reorganisation only. No source code changes. `pnpm publish` of
 - [ ] `.lintstagedrc.js` — verbatim copy from `apps-team-ts-template`
 
 - [ ] `.husky/pre-commit` — verbatim copy from template (runs lint-staged only;
-  removes the current "run full webpack build on every commit")
+      removes the current "run full webpack build on every commit")
 
 - [ ] `.husky/commit-msg` — verbatim copy from template (conventional commits)
 
 - [ ] `.husky/pre-push` — verbatim copy from template (changeset status check
-  against `master`; skips on `changeset-release/*` branches and `master` itself)
+      against `master`; skips on `changeset-release/*` branches and `master` itself)
 
 - [ ] `MIGRATION.md` — create at repo root (empty scaffold; populated before
-  each npm release with consumer-facing migration notes)
+      each npm release with consumer-facing migration notes)
 
 - [ ] `.github/CODEOWNERS` — define team as required reviewers
 
@@ -99,13 +100,14 @@ Structural reorganisation only. No source code changes. `pnpm publish` of
 - [ ] Move `artifacts/` → `packages/maticjs/artifacts/`
 - [ ] Move `examples/` → `packages/maticjs/examples/`
 - [ ] Delete root `src/`, `test/`, `webpack.config.js`, `license.js`,
-  `build_helper/`, `artifacts/`, `examples/` after move
+      `build_helper/`, `artifacts/`, `examples/` after move
 
 ### `packages/maticjs/package.json`
 
 Based on current root `package.json`, with these changes:
 
 - [ ] `"repository"`:
+
   ```json
   {
     "type": "git",
@@ -113,6 +115,7 @@ Based on current root `package.json`, with these changes:
     "directory": "packages/maticjs"
   }
   ```
+
 - [ ] Add `"publishConfig": { "access": "public" }`
 - [ ] Add `"MIGRATION.md"` to `"files"` array
 - [ ] Remove `"husky"` hooks block (hooks live at monorepo root)
@@ -121,12 +124,13 @@ Based on current root `package.json`, with these changes:
 - [ ] Keep `main`, `browser`, `react-native`, `types` entry points unchanged
 - [ ] Keep all existing `dependencies` unchanged
 - [ ] devDependencies: keep webpack, ts-loader, yargs, rimraf, copy-webpack-plugin;
-  remove tslint (replaced by root ESLint); remove husky / lint-staged (now root)
+      remove tslint (replaced by root ESLint); remove husky / lint-staged (now root)
 
 ### `packages/maticjs/tsconfig.json`
 
 - [ ] Custom config — does NOT extend `@tsconfig/node-ts` because the existing
-  source uses TypeScript `enum` which is incompatible with `erasableSyntaxOnly`
+      source uses TypeScript `enum` which is incompatible with `erasableSyntaxOnly`
+
   ```json
   {
     "extends": "../../tsconfig.json",
@@ -144,6 +148,7 @@ Based on current root `package.json`, with these changes:
     "include": ["src/**/*"]
   }
   ```
+
   Note: target upgraded ES5 → ES2015; no browser ships UMD targeting ES5 in 2025.
   TypeScript upgraded to ^5.9.3 — builds cleanly once npm node_modules is removed;
   the apparent TS5 `Buffer`/`Uint8Array` breakage was a mixed npm/pnpm resolution
@@ -172,18 +177,20 @@ Based on current root `package.json`, with these changes:
 ### ESLint
 
 - [ ] `eslint.config.js` (root)
+
   ```js
   import { defineConfig } from 'eslint/config';
   import { recommended, typescript } from '@polygonlabs/apps-team-lint';
   export default defineConfig([
     ...recommended({ globals: 'node' }),
     ...typescript(),
-    { ignores: ['**/dist/**', 'packages/maticjs/build_helper/**'] },
+    { ignores: ['**/dist/**', 'packages/maticjs/build_helper/**'] }
   ]);
   ```
+
 - [ ] Fix or suppress lint errors surfaced in `packages/maticjs/src/`
-  (use inline `// eslint-disable-next-line` with TODO comments for
-  pre-existing issues; do not silently disable entire files)
+      (use inline `// eslint-disable-next-line` with TODO comments for
+      pre-existing issues; do not silently disable entire files)
 
 ### GitHub Actions — public repo workflow pattern
 
@@ -202,67 +209,67 @@ is byte-for-byte identical.
 
 - [ ] Delete `.github/workflows/ci.yml` (old npm-based workflow)
 - [ ] Delete `.github/workflows/github_doc_deploy.yml` (fires on `docs` branch,
-  last touched July 2022; GitHub Pages not configured on the repo — confirmed dead)
+      last touched July 2022; GitHub Pages not configured on the repo — confirmed dead)
 
 #### Composite actions (local copies under `.github/actions/`)
 
 - [ ] `.github/actions/ci/action.yml`
-  — verbatim copy from `apps-team-workflows/.github/actions/ci/action.yml`
+      — verbatim copy from `apps-team-workflows/.github/actions/ci/action.yml`
 
 - [ ] `.github/actions/upsert-changeset-comment/action.yml`
-  — verbatim copy from
-  `apps-team-workflows/.github/actions/upsert-changeset-comment/action.yml`
+      — verbatim copy from
+      `apps-team-workflows/.github/actions/upsert-changeset-comment/action.yml`
 
 - [ ] `.github/actions/upsert-changeset-comment/dist/index.js`
-  — verbatim copy of the compiled bundle from
-  `apps-team-workflows/.github/actions/upsert-changeset-comment/dist/index.js`
+      — verbatim copy of the compiled bundle from
+      `apps-team-workflows/.github/actions/upsert-changeset-comment/dist/index.js`
 
 - [ ] `.github/actions/upsert-changeset-comment/dist/package.json`
-  — verbatim copy from the same location
+      — verbatim copy from the same location
 
 #### Reusable workflows (local copies under `.github/workflows/`)
 
 - [ ] `.github/workflows/ci-trigger.yml`
-  — same `on:` / `permissions:` as template, but:
+      — same `on:` / `permissions:` as template, but:
   - `branches: [master]` (not `main`)
   - step `uses: ./.github/actions/ci` (local copy)
 
 - [ ] `.github/workflows/changeset-check.yml`
-  — copy from `apps-team-workflows/.github/workflows/changeset-check.yml`
-  with one substitution:
+      — copy from `apps-team-workflows/.github/workflows/changeset-check.yml`
+      with one substitution:
   - `uses: 0xPolygon/apps-team-workflows/.github/actions/upsert-changeset-comment@main`
     → `uses: ./.github/actions/upsert-changeset-comment`
 
 - [ ] `.github/workflows/changeset-check-trigger.yml`
-  — same as template but:
+      — same as template but:
   - `branches: [master]`
   - `uses: ./.github/workflows/changeset-check.yml`
 
 - [ ] `.github/workflows/npm-release.yml`
-  — copy from `apps-team-workflows/.github/workflows/npm-release.yml`
-  with three substitutions (hardcoded branch names):
+      — copy from `apps-team-workflows/.github/workflows/npm-release.yml`
+      with three substitutions (hardcoded branch names):
   - `git/refs/heads/main` → `git/refs/heads/master`
   - `git fetch origin main --tags` → `git fetch origin master --tags`
   - `git merge --ff-only origin/main` → `git merge --ff-only origin/master`
 
 - [ ] `.github/workflows/npm-release-trigger.yml`
-  — same as template but:
+      — same as template but:
   - `branches: [master]`
   - `uses: ./.github/workflows/npm-release.yml`
 
 - [ ] `.github/workflows/claude-code-review.yml`
-  — verbatim copy from
-  `apps-team-workflows/.github/workflows/claude-code-review.yml`
+      — verbatim copy from
+      `apps-team-workflows/.github/workflows/claude-code-review.yml`
 
 - [ ] `.github/workflows/claude-code-review-trigger.yml`
-  — same as template but:
+      — same as template but:
   - `uses: ./.github/workflows/claude-code-review.yml`
 
 - [ ] `.github/workflows/claude.yml`
-  — verbatim copy from `apps-team-workflows/.github/workflows/claude.yml`
+      — verbatim copy from `apps-team-workflows/.github/workflows/claude.yml`
 
 - [ ] `.github/workflows/claude-trigger.yml`
-  — same as template but:
+      — same as template but:
   - `uses: ./.github/workflows/claude.yml`
 
 ### CI Node matrix
@@ -285,8 +292,8 @@ New package. Uses tsup. Requires Node 24 / `@tsconfig/node-ts`. No enums.
 - [ ] `packages/viem/src/contract-method.ts` — `ViemContractMethod extends BaseContractMethod`
 - [ ] `packages/viem/src/big-number.ts` — `ViemBigNumber extends BaseBigNumber`
 - [ ] `packages/viem/src/abi-utils.ts` — converts bare Solidity type strings
-  (e.g. `"uint256"`) to viem `AbiParameter[]` objects for
-  `encodeAbiParameters` / `decodeAbiParameters`
+      (e.g. `"uint256"`) to viem `AbiParameter[]` objects for
+      `encodeAbiParameters` / `decodeAbiParameters`
 - [ ] `packages/viem/tests/web3-client.test.ts` — unit tests with mocked clients
 - [ ] `packages/viem/MIGRATION.md`
 
@@ -294,6 +301,7 @@ New package. Uses tsup. Requires Node 24 / `@tsconfig/node-ts`. No enums.
 
 - [ ] `"name": "@maticnetwork/maticjs-viem"`
 - [ ] `"repository"`:
+
   ```json
   {
     "type": "git",
@@ -301,9 +309,11 @@ New package. Uses tsup. Requires Node 24 / `@tsconfig/node-ts`. No enums.
     "directory": "packages/viem"
   }
   ```
+
 - [ ] `"publishConfig": { "access": "public" }`
 - [ ] `"files": ["dist", "MIGRATION.md"]`
 - [ ] `"exports"`:
+
   ```json
   {
     ".": {
@@ -313,14 +323,15 @@ New package. Uses tsup. Requires Node 24 / `@tsconfig/node-ts`. No enums.
     }
   }
   ```
+
 - [ ] `"main": "./dist/index.js"`, `"types": "./dist/index.d.ts"`
 - [ ] `"peerDependencies"`:
   - `"@maticnetwork/maticjs": "workspace:*"`
   - `"viem": "^2.0.0"`
 - [ ] devDependencies: `tsup`, `vitest`, `typescript`, `@tsconfig/node24`,
-  `@tsconfig/node-ts`, `viem`, `@maticnetwork/maticjs`
+      `@tsconfig/node-ts`, `viem`, `@maticnetwork/maticjs`
 - [ ] scripts: `build` (`tsup`), `test` (`vitest run`),
-  `typecheck` (`tsc --noEmit`)
+      `typecheck` (`tsc --noEmit`)
 
 ### `packages/viem/tsup.config.ts`
 
@@ -334,7 +345,7 @@ New package. Uses tsup. Requires Node 24 / `@tsconfig/node-ts`. No enums.
 ### `packages/viem/tsconfig.json`
 
 - [ ] `"extends": ["../../tsconfig.json", "@tsconfig/node-ts"]`
-  (inherits root; adds `erasableSyntaxOnly`, `verbatimModuleSyntax`)
+      (inherits root; adds `erasableSyntaxOnly`, `verbatimModuleSyntax`)
 - [ ] `"include": ["src/**/*.ts", "tests/**/*.ts"]`
 
 ### `packages/viem/tsconfig.build.json`
@@ -382,6 +393,7 @@ Source copied from `0xPolygon/maticjs-web3`. Replaces webpack 4 with tsup.
 
 - [ ] `"name": "@maticnetwork/maticjs-web3"` (unchanged npm name)
 - [ ] `"repository"`:
+
   ```json
   {
     "type": "git",
@@ -389,13 +401,14 @@ Source copied from `0xPolygon/maticjs-web3`. Replaces webpack 4 with tsup.
     "directory": "packages/web3"
   }
   ```
+
 - [ ] `"publishConfig": { "access": "public" }`
 - [ ] `"files": ["dist", "MIGRATION.md"]`
 - [ ] `exports` field (same pattern as `packages/viem`)
 - [ ] peerDependencies: `@maticnetwork/maticjs: "workspace:*"`, `web3: "^1.8.0"`
-  (web3 v2 upgrade is deferred — migrate as-is to minimise risk)
+      (web3 v2 upgrade is deferred — migrate as-is to minimise risk)
 - [ ] devDependencies: `tsup`, `vitest`, `typescript`, `@tsconfig/node24`,
-  `@tsconfig/node-ts`, `web3`, `@maticnetwork/maticjs`
+      `@tsconfig/node-ts`, `web3`, `@maticnetwork/maticjs`
 
 ### Build / test
 
@@ -413,14 +426,14 @@ Source copied from `0xPolygon/maticjs-web3`. Replaces webpack 4 with tsup.
 
 - [ ] Cut a release (changeset) from monorepo to publish new version
 - [ ] Update `0xPolygon/maticjs-web3` README: "This package has moved to
-  [0xPolygon/matic.js](https://github.com/0xPolygon/matic.js). Final
-  standalone release: vX.Y.Z."
+      [0xPolygon/matic.js](https://github.com/0xPolygon/matic.js). Final
+      standalone release: vX.Y.Z."
 - [ ] Archive `0xPolygon/maticjs-web3` on GitHub
 
 ### Changeset
 
 - [ ] `pnpm exec changeset add` — patch bump for `@maticnetwork/maticjs-web3`
-  (no functional change; new build output shape)
+      (no functional change; new build output shape)
 
 ---
 
@@ -437,6 +450,7 @@ Same process as PR 4.
 
 - [ ] `"name": "@maticnetwork/maticjs-ethers"` (unchanged npm name)
 - [ ] `"repository"`:
+
   ```json
   {
     "type": "git",
@@ -444,13 +458,14 @@ Same process as PR 4.
     "directory": "packages/ethers"
   }
   ```
+
 - [ ] `"publishConfig": { "access": "public" }`
 - [ ] `"files": ["dist", "MIGRATION.md"]`
 - [ ] `exports` field
 - [ ] peerDependencies: `@maticnetwork/maticjs: "workspace:*"`, `ethers: "^5.5.1"`
-  (ethers v6 upgrade deferred — migrate as-is)
+      (ethers v6 upgrade deferred — migrate as-is)
 - [ ] devDependencies: `tsup`, `vitest`, `typescript`, `@tsconfig/node24`,
-  `@tsconfig/node-ts`, `ethers`, `@maticnetwork/maticjs`
+      `@tsconfig/node-ts`, `ethers`, `@maticnetwork/maticjs`
 
 ### Build / test
 
@@ -476,13 +491,13 @@ Same process as PR 4.
 
 ## Deferred (not in scope for this migration)
 
-| Item | Reason |
-|------|--------|
-| Migrate `packages/maticjs/test/` to vitest | Needs live RPC endpoints and wallet keys; tackled separately |
-| Migrate webpack → tsup in `packages/maticjs/` | Working build; low risk to defer |
-| Remove `export default` from `src/index.ts` | Breaking public API change; needs semver-major |
-| Convert `enum` to `const` in `packages/maticjs/src/` | Enables `erasableSyntaxOnly`; significant churn; own PR |
-| ethers v6 upgrade | API chasm; own migration guide and PR |
-| web3 v2 upgrade | Same |
-| `maticjs-plasma` | Extends `BridgeClient`, not `IPlugin`; stays independent |
-| `maticjs-staking` | Same |
+| Item                                                 | Reason                                                       |
+| ---------------------------------------------------- | ------------------------------------------------------------ |
+| Migrate `packages/maticjs/test/` to vitest           | Needs live RPC endpoints and wallet keys; tackled separately |
+| Migrate webpack → tsup in `packages/maticjs/`        | Working build; low risk to defer                             |
+| Remove `export default` from `src/index.ts`          | Breaking public API change; needs semver-major               |
+| Convert `enum` to `const` in `packages/maticjs/src/` | Enables `erasableSyntaxOnly`; significant churn; own PR      |
+| ethers v6 upgrade                                    | API chasm; own migration guide and PR                        |
+| web3 v2 upgrade                                      | Same                                                         |
+| `maticjs-plasma`                                     | Extends `BridgeClient`, not `IPlugin`; stays independent     |
+| `maticjs-staking`                                    | Same                                                         |

@@ -1,6 +1,6 @@
-import { ERROR_TYPE } from "../enums";
+import type { ERROR_TYPE } from '../enums';
 
 export interface IError {
-    type: ERROR_TYPE;
-    message: string;
+  type: ERROR_TYPE;
+  message: string;
 }

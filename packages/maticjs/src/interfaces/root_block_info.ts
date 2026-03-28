@@ -1,7 +1,7 @@
-import { BaseBigNumber } from "../abstracts";
+import type { BaseBigNumber } from '../abstracts';
 
 export interface IRootBlockInfo {
-    start: string;
-    end: string;
-    headerBlockNumber: BaseBigNumber;
+  start: string;
+  end: string;
+  headerBlockNumber: BaseBigNumber;
 }

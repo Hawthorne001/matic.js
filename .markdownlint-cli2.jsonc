@@ -6,5 +6,5 @@
     "MD024": { "siblings_only": true },
     "MD060": false
   },
-  "ignores": ["**/node_modules/**", "**/.claude/**"]
+  "ignores": ["**/node_modules/**", "**/.claude/**", "examples/**"]
 }

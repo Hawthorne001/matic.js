@@ -1,90 +1,89 @@
-import { IBaseClientConfig } from "../interfaces";
-import { BaseWeb3Client } from "../abstracts";
-import { ABIManager } from "../utils";
-import { Logger } from "./logger";
-import { utils } from "..";
+import type { BaseWeb3Client } from '../abstracts';
+import type { IBaseClientConfig } from '../interfaces';
+
+import { utils } from '..';
+import { ABIManager } from '../utils';
+import { Logger } from './logger';
 
 const chainIdToConfigPath = {
-    1: 'Main',
-    5: 'Main',
-    11155111: 'Main',
-    137: 'Matic',
-    80001: 'Matic',
-    80002: 'Matic',
-    1442: 'zkEVM',
-    2442: 'zkEVM',
-    1101: 'zkEVM'
+  1: 'Main',
+  5: 'Main',
+  11155111: 'Main',
+  137: 'Matic',
+  80001: 'Matic',
+  80002: 'Matic',
+  1442: 'zkEVM',
+  2442: 'zkEVM',
+  1101: 'zkEVM'
 };
 
 export class Web3SideChainClient<T_CONFIG> {
-    parent: BaseWeb3Client;
-    child: BaseWeb3Client;
+  parent: BaseWeb3Client;
+  child: BaseWeb3Client;
 
-    config: T_CONFIG;
+  config: T_CONFIG;
 
-    abiManager: ABIManager;
+  abiManager: ABIManager;
 
-    logger = new Logger();
-    resolution: {};
+  logger = new Logger();
+  resolution: unknown = {};
 
-    init(config: IBaseClientConfig) {
-        config = config || {} as any;
-        config.parent.defaultConfig = config.parent.defaultConfig || {} as any;
-        config.child.defaultConfig = config.child.defaultConfig || {} as any;
-        this.config = config as any;
+  init(config: IBaseClientConfig) {
+    const normalizedConfig = config || ({} as any);
+    normalizedConfig.parent.defaultConfig = normalizedConfig.parent.defaultConfig || ({} as any);
+    normalizedConfig.child.defaultConfig = normalizedConfig.child.defaultConfig || ({} as any);
+    this.config = normalizedConfig as any;
 
-        // tslint:disable-next-line
-        const Web3Client = utils.Web3Client;
+    // tslint:disable-next-line
+    const Web3Client = utils.Web3Client;
 
-        if (!Web3Client) {
-            throw new Error("Web3Client is not set");
-        }
-
-        if (utils.UnstoppableDomains) {
-            this.resolution = utils.UnstoppableDomains;
-        }
-
-        this.parent = new (Web3Client as any)(config.parent.provider, this.logger);
-        this.child = new (Web3Client as any)(config.child.provider, this.logger);
-
-        this.logger.enableLog(config.log);
-
-        const network = config.network;
-        const version = config.version;
-        const abiManager = this.abiManager =
-            new ABIManager(network, version);
-        this.logger.log("init called", abiManager);
-        return abiManager.init().catch(err => {
-            throw new Error(`network ${network} - ${version} is not supported`);
-        });
+    if (!Web3Client) {
+      throw new Error('Web3Client is not set');
     }
 
-    getABI(name: string, type?: string) {
-        return this.abiManager.getABI(name, type);
+    if (utils.UnstoppableDomains) {
+      this.resolution = utils.UnstoppableDomains;
     }
 
-    getConfig(path: string) {
-        return this.abiManager.getConfig(path);
-    }
+    this.parent = new (Web3Client as any)(normalizedConfig.parent.provider, this.logger);
+    this.child = new (Web3Client as any)(normalizedConfig.child.provider, this.logger);
 
-    get mainPlasmaContracts() {
-        return this.getConfig("Main.Contracts");
-    }
+    this.logger.enableLog(normalizedConfig.log);
 
-    get mainPOSContracts() {
-        return this.getConfig("Main.POSContracts");
-    }
+    const network = normalizedConfig.network;
+    const version = normalizedConfig.version;
+    const abiManager = (this.abiManager = new ABIManager(network, version));
+    this.logger.log('init called', abiManager);
+    return abiManager.init().catch(() => {
+      throw new Error(`network ${network} - ${version} is not supported`);
+    });
+  }
 
-    get mainZkEvmContracts() {
-        return this.getConfig("Main.Contracts");
-    }
+  getABI(name: string, type?: string) {
+    return this.abiManager.getABI(name, type);
+  }
 
-    get zkEvmContracts() {
-        return this.getConfig("zkEVM.Contracts");
-    }
+  getConfig(path: string) {
+    return this.abiManager.getConfig(path);
+  }
 
-    isEIP1559Supported(chainId: number): boolean {
-        return this.getConfig(`${chainIdToConfigPath[chainId]}.SupportsEIP1559`);
-    }
+  get mainPlasmaContracts() {
+    return this.getConfig('Main.Contracts');
+  }
 
+  get mainPOSContracts() {
+    return this.getConfig('Main.POSContracts');
+  }
+
+  get mainZkEvmContracts() {
+    return this.getConfig('Main.Contracts');
+  }
+
+  get zkEvmContracts() {
+    return this.getConfig('zkEVM.Contracts');
+  }
+
+  isEIP1559Supported(chainId: number): boolean {
+    return this.getConfig(`${chainIdToConfigPath[chainId]}.SupportsEIP1559`);
+  }
 }
