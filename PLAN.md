@@ -145,6 +145,9 @@ Based on current root `package.json`, with these changes:
   }
   ```
   Note: target upgraded ES5 → ES2015; no browser ships UMD targeting ES5 in 2025.
+  TypeScript upgraded to ^5.9.3 — builds cleanly once npm node_modules is removed;
+  the apparent TS5 `Buffer`/`Uint8Array` breakage was a mixed npm/pnpm resolution
+  artefact, not a genuine TypeScript version issue.
 
 ### `packages/maticjs/MIGRATION.md`
 
