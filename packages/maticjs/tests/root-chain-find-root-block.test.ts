@@ -30,25 +30,75 @@
  *
  *   Bug 2 is exercised at the call site (RootChain wires both reads to the
  *   same `block` tag); these tests cover Bug 1 — the pure-helper algorithm —
- *   directly. The helper is plugin-agnostic (it consumes any `BaseBigNumber`),
- *   so we exercise it with `bn.js` for convenience; production paths use
- *   whatever BigNumber the active plugin injects.
+ *   directly.
+ *
+ * The tests use a `TestBN` that explicitly `implements BaseBigNumber`, so
+ * TypeScript verifies the helper is genuinely plugin-agnostic. If a future
+ * refactor of the helper started using a method outside the `BaseBigNumber`
+ * surface (e.g. a bn.js-only helper like `iadd`), this test would fail to
+ * compile rather than silently keep working.
  */
 
-import BN from 'bn.js';
 import { describe, expect, it } from 'vitest';
 
 import type { BaseBigNumber } from '../src/abstracts/base_big_number';
 
 import { findCheckpointSlot } from '../src/pos/find_checkpoint_slot';
 
+/**
+ * Minimal BigNumber that explicitly implements the `BaseBigNumber` abstract
+ * surface — the contract every plugin's BigNumber must honour
+ * (`MaticBigNumber` for `@maticnetwork/maticjs-ethers`, bn.js for the web3
+ * plugin, etc.). Backed by a JS number; safe for the small slot indices
+ * exercised here. Any drift in the helper away from `BaseBigNumber` methods
+ * would be a TypeScript compile error in this file.
+ */
+class TestBN implements BaseBigNumber {
+  constructor(private readonly value: number) {}
+
+  toString(_base?: number): string {
+    return this.value.toString();
+  }
+  toNumber(): number {
+    return this.value;
+  }
+  add(value: BaseBigNumber): BaseBigNumber {
+    return new TestBN(this.value + (value as TestBN).value);
+  }
+  sub(value: BaseBigNumber): BaseBigNumber {
+    return new TestBN(this.value - (value as TestBN).value);
+  }
+  mul(value: BaseBigNumber): BaseBigNumber {
+    return new TestBN(this.value * (value as TestBN).value);
+  }
+  div(value: BaseBigNumber): BaseBigNumber {
+    return new TestBN(Math.trunc(this.value / (value as TestBN).value));
+  }
+  lte(value: BaseBigNumber): boolean {
+    return this.value <= (value as TestBN).value;
+  }
+  lt(value: BaseBigNumber): boolean {
+    return this.value < (value as TestBN).value;
+  }
+  gte(value: BaseBigNumber): boolean {
+    return this.value >= (value as TestBN).value;
+  }
+  gt(value: BaseBigNumber): boolean {
+    return this.value > (value as TestBN).value;
+  }
+  eq(value: BaseBigNumber): boolean {
+    return this.value === (value as TestBN).value;
+  }
+}
+
+const bnFactory = (v: number | string) =>
+  new TestBN(typeof v === 'number' ? v : Number(v)) as BaseBigNumber;
+const bn = (v: number) => bnFactory(v);
+
 interface HeaderBlock {
   start: BaseBigNumber;
   end: BaseBigNumber;
 }
-
-const bnFactory = (value: number | string) => new BN(value) as unknown as BaseBigNumber;
-const bn = (value: number) => bnFactory(value);
 
 function makeReader(opts: {
   currentHeaderBlock: number;
@@ -127,6 +177,70 @@ describe('findCheckpointSlot — happy path', () => {
       readHeaderBlocks: reader.readHeaderBlocks
     });
     expect(ans.toString()).to.equal('10000');
+  });
+
+  it("includes the checkpoint's lower bound (burn = headerStart)", async () => {
+    // Slot 3 covers 20001..30000 inclusive on both ends. A burn at exactly
+    // 20001 must resolve to slot 3, not slot 2.
+    const reader = makeReader({
+      currentHeaderBlock: 40000,
+      headerBlocksBySlot: {
+        1: { start: 1, end: 10000 },
+        2: { start: 10001, end: 20000 },
+        3: { start: 20001, end: 30000 },
+        4: { start: 30001, end: 40000 }
+      }
+    });
+    const ans = await findCheckpointSlot({
+      bn: bnFactory,
+      childBlockNumber: bn(20001),
+      readCurrentHeaderBlock: reader.readCurrentHeaderBlock,
+      readHeaderBlocks: reader.readHeaderBlocks
+    });
+    expect(ans.toString(), 'lower bound inclusive').to.equal('30000');
+  });
+
+  it("includes the checkpoint's upper bound (burn = headerEnd)", async () => {
+    const reader = makeReader({
+      currentHeaderBlock: 40000,
+      headerBlocksBySlot: {
+        1: { start: 1, end: 10000 },
+        2: { start: 10001, end: 20000 },
+        3: { start: 20001, end: 30000 },
+        4: { start: 30001, end: 40000 }
+      }
+    });
+    const ans = await findCheckpointSlot({
+      bn: bnFactory,
+      childBlockNumber: bn(30000),
+      readCurrentHeaderBlock: reader.readCurrentHeaderBlock,
+      readHeaderBlocks: reader.readHeaderBlocks
+    });
+    expect(ans.toString(), 'upper bound inclusive').to.equal('30000');
+  });
+
+  it('locates the burn in the LAST checkpoint (success path through start.eq(end))', async () => {
+    // The burn lives in the rightmost slot, so the binary search drifts
+    // right and converges via the start.eq(end) early exit on the
+    // SUCCESSFUL path. This exercises the converged-candidate validation
+    // branch where the membership check passes (mirror image of the past-
+    // tip rejection cases below).
+    const reader = makeReader({
+      currentHeaderBlock: 40000,
+      headerBlocksBySlot: {
+        1: { start: 1, end: 10000 },
+        2: { start: 10001, end: 20000 },
+        3: { start: 20001, end: 30000 },
+        4: { start: 30001, end: 40000 }
+      }
+    });
+    const ans = await findCheckpointSlot({
+      bn: bnFactory,
+      childBlockNumber: bn(35000),
+      readCurrentHeaderBlock: reader.readCurrentHeaderBlock,
+      readHeaderBlocks: reader.readHeaderBlocks
+    });
+    expect(ans.toString(), 'returns slot 4 (id 40000)').to.equal('40000');
   });
 });
 
