@@ -3,10 +3,15 @@ name: Release
 on:
   push:
     branches: [master]
+  # Snapshot publish: bumps versions on the runner only and publishes
+  # under a custom dist-tag via OIDC. Use to ship a *throwaway*
+  # prerelease ahead of a real release. Must not be a semver-shaped
+  # value — the canonical reusable workflow validates and aborts on
+  # such input.
   workflow_dispatch:
     inputs:
-      tag:
-        description: 'npm dist-tag for snapshot (e.g. canary, chore-monorepo)'
+      snapshot_tag:
+        description: 'npm dist-tag for snapshot (e.g. canary, pre-3.9.10). Non-semver values only.'
         required: false
         default: 'snapshot'
 
@@ -17,42 +22,18 @@ permissions:
 
 jobs:
   release:
-    if: github.event_name == 'push'
     uses: 0xPolygon/pipelines/.github/workflows/apps-npm-release.yml@main
-    # matic.js's default branch is `master`, not `main`. The shared workflow
-    # uses this for the post-publish lockfile commit (PATCH refs/heads/<branch>)
-    # and the pre-tag fast-forward fetch.
+    # matic.js's default branch is `master`, not `main`. The shared
+    # workflow uses this for the post-publish lockfile commit
+    # (PATCH refs/heads/<branch>) and the pre-tag fast-forward fetch.
+    #
+    # `snapshot_tag` is empty on the `push` event (no `inputs.snapshot_tag`
+    # to forward), so the reusable workflow runs the standard release
+    # job. On `workflow_dispatch` the supplied dist-tag is forwarded
+    # and the reusable workflow runs the snapshot job instead.
     with:
       default_branch: master
+      snapshot_tag: ${{ inputs.snapshot_tag || '' }}
     secrets:
       CHANGESET_RELEASE_BOT_APP_ID: ${{ secrets.CHANGESET_RELEASE_BOT_APP_ID }}
       CHANGESET_RELEASE_BOT_APP_PRIVATE_KEY: ${{ secrets.CHANGESET_RELEASE_BOT_APP_PRIVATE_KEY }}
-
-  snapshot:
-    if: github.event_name == 'workflow_dispatch'
-    name: Publish snapshot
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-
-      - uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4
-
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-          registry-url: 'https://registry.npmjs.org'
-          # No node-auth-token — npm auth handled by OIDC trusted publishing
-
-      - run: pnpm install --frozen-lockfile
-
-      - name: Build packages
-        run: pnpm --filter @maticnetwork/maticjs run build
-
-      - name: Version snapshot
-        # Temporarily bumps the version to e.g. 3.9.7-chore-monorepo-20260329085530.0
-        # on the runner — these changes are never committed.
-        run: pnpm exec changeset version --snapshot ${{ inputs.tag }}
-
-      - name: Publish snapshot
-        run: pnpm exec changeset publish --snapshot --tag ${{ inputs.tag }} --no-git-tag
