@@ -4,6 +4,7 @@ import type { TYPE_AMOUNT } from '../types';
 import type { Web3SideChainClient } from '../utils';
 
 import { BaseToken, utils } from '../utils';
+import { findCheckpointSlot } from './find_checkpoint_slot';
 
 export class RootChain extends BaseToken<IPOSClientConfig> {
   constructor(client_: Web3SideChainClient<IPOSClientConfig>, address: string) {
@@ -23,55 +24,46 @@ export class RootChain extends BaseToken<IPOSClientConfig> {
     });
   }
 
+  private get defaultReadBlock() {
+    return this.client.config.rootChainDefaultBlock || 'safe';
+  }
+
   getLastChildBlock() {
     return this.method('getLastChildBlock').then((method) => {
-      return method.read<string>({}, this.client.config.rootChainDefaultBlock || 'safe');
+      return method.read<string>({}, this.defaultReadBlock);
     });
   }
 
   async findRootBlockFromChild(childBlockNumber: TYPE_AMOUNT): Promise<BaseBigNumber> {
-    const bigOne = new utils.BN(1);
-    const bigtwo = new utils.BN(2);
-    const checkPointInterval = new utils.BN(10000);
+    // All reads in this function pin to the same L1 block tag as
+    // `getLastChildBlock`, so the existence check (isCheckPointed_) and the
+    // header lookup observe a consistent chain view. Without this,
+    // `getLastChildBlock` read at e.g. `safe` while `currentHeaderBlock` and
+    // `headerBlocks` defaulted to whatever the provider used (effectively
+    // `latest`) — a window where the existence check could pass against an
+    // un-finalised checkpoint that was reorged out before the proof reached
+    // L1.
+    const block = this.defaultReadBlock;
 
-    const bnChildBlock = new utils.BN(childBlockNumber);
-    // first checkpoint id = start * 10000
-    let start = bigOne;
-
-    // last checkpoint id = end * 10000
-    const method = await this.method('currentHeaderBlock');
-    const currentHeaderBlock = await method.read<string>();
-    let end = new utils.BN(currentHeaderBlock).div(checkPointInterval);
-
-    // binary search on all the checkpoints to find the checkpoint that contains the childBlockNumber
-    let ans;
-    while (start.lte(end)) {
-      if (start.eq(end)) {
-        ans = start;
-        break;
+    return findCheckpointSlot({
+      bn: (value) => new utils.BN(value),
+      childBlockNumber: new utils.BN(childBlockNumber.toString()),
+      readCurrentHeaderBlock: async () => {
+        const m = await this.method('currentHeaderBlock');
+        const value = await m.read<string>({}, block);
+        return new utils.BN(value);
+      },
+      readHeaderBlocks: async (headerId) => {
+        const m = await this.method('headerBlocks', headerId.toString());
+        const headerBlock = await m.read<{ start: number | string; end: number | string }>(
+          {},
+          block
+        );
+        return {
+          start: new utils.BN(headerBlock.start),
+          end: new utils.BN(headerBlock.end)
+        };
       }
-      const mid = start.add(end).div(bigtwo);
-      const headerBlocksMethod = await this.method(
-        'headerBlocks',
-        mid.mul(checkPointInterval).toString()
-      );
-      const headerBlock = await headerBlocksMethod.read<{ start: number; end: number }>();
-
-      const headerStart = new utils.BN(headerBlock.start);
-      const headerEnd = new utils.BN(headerBlock.end);
-
-      if (headerStart.lte(bnChildBlock) && bnChildBlock.lte(headerEnd)) {
-        // if bnChildBlock is between the upper and lower bounds of the headerBlock, we found our answer
-        ans = mid;
-        break;
-      } else if (headerStart.gt(bnChildBlock)) {
-        // bnChildBlock was checkpointed before this header
-        end = mid.sub(bigOne);
-      } else if (headerEnd.lt(bnChildBlock)) {
-        // bnChildBlock was checkpointed after this header
-        start = mid.add(bigOne);
-      }
-    }
-    return ans.mul(checkPointInterval);
+    });
   }
 }
