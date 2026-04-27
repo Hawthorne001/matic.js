@@ -19,22 +19,36 @@ jobs:
     # consumers are likely to be running. Tooling (ESLint, vitest) requires
     # Node 18+, so 16.x is excluded — the library's engines field still
     # declares >=8.0.0 for runtime compatibility.
+    #
+    # The `!startsWith(github.head_ref, 'changeset-release/')` guard is
+    # applied to every step rather than the job: a job-level `if:` produces
+    # a `skipped` conclusion, which GitHub treats as "not run" for required
+    # status checks, blocking the auto-opened Release / Deploy PR. Skipping
+    # at the step level lets the job report `success` while doing no work.
     name: build (${{ matrix.node-version }})
     runs-on: ubuntu-latest
-    if: "!startsWith(github.head_ref, 'changeset-release/')"
     strategy:
       matrix:
         node-version: [18.x, 20.x, 22.x, 24.x]
     steps:
+      - name: Skip build on changeset-release branches
+        if: startsWith(github.head_ref, 'changeset-release/')
+        run: echo "Skipping build — Release / Deploy PRs only contain version bumps and changelog entries."
+
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        if: "!startsWith(github.head_ref, 'changeset-release/')"
 
       - uses: pnpm/action-setup@41ff72655975bd51cab0327fa583b6e92b6d3061 # v4
+        if: "!startsWith(github.head_ref, 'changeset-release/')"
 
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        if: "!startsWith(github.head_ref, 'changeset-release/')"
         with:
           node-version: ${{ matrix.node-version }}
           cache: pnpm
 
       - run: pnpm install --frozen-lockfile
+        if: "!startsWith(github.head_ref, 'changeset-release/')"
 
       - run: pnpm --filter @maticnetwork/maticjs run build
+        if: "!startsWith(github.head_ref, 'changeset-release/')"
