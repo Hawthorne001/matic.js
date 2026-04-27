@@ -21,7 +21,8 @@
     "build:prod": "webpack --env build",
     "build": "pnpm run clean && pnpm run build:dev && pnpm run build:prod",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "prepublishOnly": "pnpm run build"
   },
   "keywords": [
     "ethereum",
