@@ -1,9 +1,9 @@
 # Matic SDK
 
-[![GitHub version](https://badge.fury.io/gh/maticnetwork%2Fmatic.js.svg)](https://badge.fury.io/gh/maticnetwork%2Fmatic.js)
-![Build Status](https://github.com/0xPolygon/matic.js/workflows/CI/badge.svg?branch=master)
-[![npm version](https://badge.fury.io/js/%40maticnetwork%2Fmaticjs.svg)](https://badge.fury.io/js/%40maticnetwork%2Fmaticjs)
-![GitHub](https://img.shields.io/github/license/0xPolygon/matic.js)
+[![npm version](https://img.shields.io/npm/v/@maticnetwork/maticjs.svg)](https://www.npmjs.com/package/@maticnetwork/maticjs)
+[![CI](https://github.com/0xPolygon/matic.js/actions/workflows/ci-trigger.yml/badge.svg?branch=master)](https://github.com/0xPolygon/matic.js/actions/workflows/ci-trigger.yml)
+[![Release](https://github.com/0xPolygon/matic.js/actions/workflows/npm-release-trigger.yml/badge.svg?branch=master)](https://github.com/0xPolygon/matic.js/actions/workflows/npm-release-trigger.yml)
+[![License: MIT](https://img.shields.io/npm/l/@maticnetwork/maticjs.svg)](LICENSE)
 
 This repository contains the `maticjs` client library. `maticjs` makes it easy for developers,
 who may not be deeply familiar with smart contract development, to interact with the various
@@ -14,7 +14,7 @@ from Matic to Ethereum using fraud proofs.
 
 ## Docs
 
-[https://wiki.polygon.technology/docs/tools/matic-js/get-started](https://wiki.polygon.technology/docs/tools/matic-js/get-started/)
+[https://docs.polygon.technology/tools/matic-js/get-started](https://docs.polygon.technology/tools/matic-js/get-started)
 
 ## Support
 
