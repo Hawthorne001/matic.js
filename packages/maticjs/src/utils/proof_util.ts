@@ -277,7 +277,13 @@ export class ProofUtil {
             : '0x'
           : receipt.root
       ),
-      BufferUtil.toBuffer(receipt.cumulativeGasUsed),
+      // Pass the integer directly to rlp so 0 encodes as the canonical empty byte
+      // string (0x80). Pre-converting via BufferUtil.toBuffer(0) yields <Buffer 00>,
+      // which RLP-encodes to 0x00 — non-canonical. Bor uses the canonical form when
+      // committing receiptsRoot, so the wrong encoding produces a leaf hash that
+      // never matches the root for blocks where cumulativeGasUsed = 0 (Bor system-tx-
+      // only blocks), and on-chain MPT verifiers revert.
+      receipt.cumulativeGasUsed,
       BufferUtil.toBuffer(receipt.logsBloom),
       // encoded log array
       receipt.logs.map((l) => {
