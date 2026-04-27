@@ -1,14 +1,16 @@
 # Matic SDK
 
 [![GitHub version](https://badge.fury.io/gh/maticnetwork%2Fmatic.js.svg)](https://badge.fury.io/gh/maticnetwork%2Fmatic.js)
-![Build Status](https://github.com/maticnetwork/matic.js/workflows/CI/badge.svg?branch=master)
+![Build Status](https://github.com/0xPolygon/matic.js/workflows/CI/badge.svg?branch=master)
 [![npm version](https://badge.fury.io/js/%40maticnetwork%2Fmaticjs.svg)](https://badge.fury.io/js/%40maticnetwork%2Fmaticjs)
-![GitHub](https://img.shields.io/github/license/maticnetwork/matic.js)
-[![TEST](https://github.com/maticnetwork/matic.js/actions/workflows/test.yml/badge.svg)](https://github.com/maticnetwork/matic.js/actions/workflows/test.yml)
+![GitHub](https://img.shields.io/github/license/0xPolygon/matic.js)
 
-This repository contains the `maticjs` client library. `maticjs` makes it easy for developers, who may not be deeply familiar with smart contract development, to interact with the various components of Matic Network.
+This repository contains the `maticjs` client library. `maticjs` makes it easy for developers,
+who may not be deeply familiar with smart contract development, to interact with the various
+components of Matic Network.
 
-This library will help developers to move assets from Ethereum chain to Matic chain, and withdraw from Matic to Ethereum using fraud proofs.
+This library will help developers to move assets from Ethereum chain to Matic chain, and withdraw
+from Matic to Ethereum using fraud proofs.
 
 ## Docs
 
@@ -24,69 +26,49 @@ You are very welcome to contribute, please see contributing guidelines - [[Contr
 
 Thank you to all the people who already contributed to matic.js!
 
-<a href="https://github.com/maticnetwork/matic.js/graphs/contributors">
-  <img src="https://contrib.rocks/image?repo=maticnetwork/matic.js" />
-</a>
+[![Contributors](https://contrib.rocks/image?repo=maticnetwork/matic.js)](https://github.com/maticnetwork/matic.js/graphs/contributors)
 
 Made with [contributors-img](https://contrib.rocks).
 
 ## Development
 
-**Setup**
+This is a pnpm monorepo. The published package lives in `packages/maticjs/`.
+
+### Setup
 
 ```bash
-npm ci
+pnpm install
 ```
 
-**How to debug**
-
-Write your code inside file `test/debug.js` and run below code
+### Lint
 
 ```bash
-npm run debug
+pnpm run lint
 ```
 
-Above command will build the source code & install the built version into test folder, which will be used by `debug.js`.
-
-**Lint**
+### Typecheck
 
 ```bash
-# To check lint errors
-npm run lint
-
-# To fix most common lint errors
-# Note that it might not fix all errors, some need manual intervention
-npm run lint:fix
+pnpm run typecheck
 ```
 
-**Build code**
+### Build
 
 ```bash
-npm run build
+pnpm run build
 ```
 
-**Run test**
+### Publish
+
+Releases are managed via [changesets](https://github.com/changesets/changesets).
 
 ```bash
-npm run test
+# Add a changeset describing your change
+pnpm exec changeset add
+
+# The release workflow publishes automatically on merge to master
 ```
 
-**Generate distribution files**
-
-```bash
-npm run deploy
-```
-
-**NPM publish**
-
-Before running publish script, make sure you have updated version properly.
-
-Note that `prepublishOnly` script will be automatically called while publishing. It will check lint, clean dist/lib folders and build fresh distribution files before it executes `npm publish`.
-
-```bash
-npm publish
-```
-
-### License
+## License
 
 MIT

@@ -1,69 +1,58 @@
-# Example
+# Examples
 
-This folder contains different examples for different cases. All examples are nodejs scripts, so can be easily run by `node` command.
+This folder contains example scripts for various matic.js use cases.
 
-- plasma - plasma folder contains examples related to plasma api
-- pos - pos folder contains examples related to pos api
+- `pos/` — PoS bridge examples
+- `zkevm/` — zkEVM bridge examples
 
 ## How to use
 
 ### 1. Set configuration
 
-You need to configure your environment variables now. Copy `.env.example` and rename as `.env`. Now provide values for the keys mentioned there.
+Copy `.env.example` to `.env` and fill in your values. Contract addresses and
+RPC URLs are pre-filled for testnet in `config.js` — change them as needed.
 
-There are some prefilled data in `config.js` but feel free to change anything as per your needs.
+**Note:** Never commit your private key or share it publicly.
 
+### 2. Install dependencies
 
-**Note:** - Be careful with your private key, Use a key you are comfortable with for development purposes. And try not to make it public by doing actions such as committing to repo or referencing on any online site.
+This directory is a standalone project — install with npm directly (it is not
+part of the pnpm workspace):
 
-### 2. Install package
-
-install related package by running command -
-
-```
-npm i
-```
-
-**Note:-** Make sure you are inside examples folder.
-
-### 3. Run script
-
-run any example script by using
-
-```
-node <file_path>
+```bash
+npm install
 ```
 
-let's run a plasma erc20 balance example
+### 3. Run a script
 
-```
-node plasma/erc20/balance.js
-```
-
-## Run example using source code
-
-This section helps you to run the example code with current source code. Generally it is needed for debugging purpose.
-
-### 1. Build & link source code
-
-Run the below command inside root of this project.
-
-```
-npm run build:link
+```bash
+node pos/erc20/balance.js
 ```
 
-You might get permission issue, in this case run the command using `sudo`.
+## Run against local source
 
-### 2. Link the library
+To test against a local build of the library rather than the published npm version:
 
-#### 2.1 Move into examples folder
+### 1. Build the package
 
+From the monorepo root:
+
+```bash
+pnpm --filter @maticnetwork/maticjs run build
 ```
-cd examples
+
+### 2. Point the dependency at the local package
+
+In `examples/package.json`, change:
+
+```json
+"@maticnetwork/maticjs": "^3.9.2"
 ```
 
-#### 2.2 run link command
+to:
 
+```json
+"@maticnetwork/maticjs": "file:../packages/maticjs"
 ```
-npm run link:lib
-```
+
+Then re-run `npm install`. No linking required.

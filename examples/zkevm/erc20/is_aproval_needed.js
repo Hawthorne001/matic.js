@@ -5,12 +5,13 @@ const execute = async () => {
   const erc20Token = client.erc20(zkEvm.parent.erc20, true);
 
   const result = await erc20Token.isApprovalNeeded();
-  console.log("result", result);
-
-}
-execute().then(() => {
-}).catch(err => {
-  console.error("err", err);
-}).finally(_ => {
-  process.exit(0);
-})
+  console.log('result', result);
+};
+execute()
+  .then(() => {})
+  .catch((err) => {
+    console.error('err', err);
+  })
+  .finally((_) => {
+    process.exit(0);
+  });

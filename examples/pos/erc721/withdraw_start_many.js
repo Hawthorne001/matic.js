@@ -8,20 +8,21 @@ const execute = async () => {
   const result = await erc721Token.withdrawStartMany(['800', '802'], {
     // nonce: 11793,
     // returnTransaction: true,
-    gasPrice: '4000000000',
-  })
+    gasPrice: '4000000000'
+  });
 
   console.log(result);
 
   const txHash = await result.getTransactionHash();
-  console.log("txHash", txHash);
+  console.log('txHash', txHash);
   const receipt = await result.getReceipt();
-  console.log("receipt", receipt);
-
-}
-execute().then(() => {
-}).catch(err => {
-  console.error("err", err);
-}).finally(_ => {
-  process.exit(0);
-})
+  console.log('receipt', receipt);
+};
+execute()
+  .then(() => {})
+  .catch((err) => {
+    console.error('err', err);
+  })
+  .finally((_) => {
+    process.exit(0);
+  });

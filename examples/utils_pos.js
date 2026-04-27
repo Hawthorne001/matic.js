@@ -1,21 +1,21 @@
-const bn = require('bn.js')
-const HDWalletProvider = require('@truffle/hdwallet-provider')
-const config = require('./config')
-const { POSClient, setProofApi, use } = require('@maticnetwork/maticjs')
-const SCALING_FACTOR = new bn(10).pow(new bn(18))
-const { Web3ClientPlugin } = require('@maticnetwork/maticjs-web3')
+const bn = require('bn.js');
+const HDWalletProvider = require('@truffle/hdwallet-provider');
+const config = require('./config');
+const { POSClient, setProofApi, use } = require('@maticnetwork/maticjs');
+const SCALING_FACTOR = new bn(10).pow(new bn(18));
+const { Web3ClientPlugin } = require('@maticnetwork/maticjs-web3');
 
-use(Web3ClientPlugin)
+use(Web3ClientPlugin);
 
 if (config.proofApi) {
-  setProofApi(config.proofApi)
+  setProofApi(config.proofApi);
 }
 
-const privateKey = config.user1.privateKey
-const userAddress = config.user1.address
+const privateKey = config.user1.privateKey;
+const userAddress = config.user1.address;
 
 const getPOSClient = (network = 'testnet', version = 'amoy') => {
-  const posClient = new POSClient()
+  const posClient = new POSClient();
   return posClient.init({
     log: true,
     network: network,
@@ -23,17 +23,17 @@ const getPOSClient = (network = 'testnet', version = 'amoy') => {
     child: {
       provider: new HDWalletProvider(privateKey, config.rpc.pos.child),
       defaultConfig: {
-        from: userAddress,
-      },
+        from: userAddress
+      }
     },
     parent: {
       provider: new HDWalletProvider(privateKey, config.rpc.pos.parent),
       defaultConfig: {
-        from: userAddress,
-      },
-    },
-  })
-}
+        from: userAddress
+      }
+    }
+  });
+};
 
 module.exports = {
   SCALING_FACTOR,
@@ -43,5 +43,5 @@ module.exports = {
   from: config.user1.address,
   privateKey: config.user1.privateKey,
   to: config.user2.address,
-  proofApi: config.proofApi,
-}
+  proofApi: config.proofApi
+};

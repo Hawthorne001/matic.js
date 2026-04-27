@@ -1,5 +1,6 @@
 node_modules
 lib
+.idea
 .DS_Store
 *.log
 dump.rdb
@@ -9,10 +10,12 @@ test-blockchain/history
 test-blockchain/data/**
 !test-blockchain/data/.gitkeep
 *.env
+manual/.env
 bundle.js
 dist
 
 *.tgz
 config.json
+!.changeset/config.json
 .nuxt
 docs

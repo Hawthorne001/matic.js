@@ -1,4 +1,4 @@
-const { setProofApi } = require("@maticnetwork/maticjs");
+const { setProofApi } = require('@maticnetwork/maticjs');
 const { pos } = require('../../config');
 const { getPOSClient, proofApi } = require('../../utils_pos');
 
@@ -13,15 +13,16 @@ const execute = async () => {
   );
 
   const txHash = await result.getTransactionHash();
-  console.log("txHash", txHash);
-  
-  const receipt = await result.getReceipt();
-  console.log("receipt", receipt);
+  console.log('txHash', txHash);
 
-}
-execute().then(() => {
-}).catch(err => {
-  console.error("err", err);
-}).finally(_ => {
-  process.exit(0);
-})
+  const receipt = await result.getReceipt();
+  console.log('receipt', receipt);
+};
+execute()
+  .then(() => {})
+  .catch((err) => {
+    console.error('err', err);
+  })
+  .finally((_) => {
+    process.exit(0);
+  });
